@@ -155,7 +155,8 @@ func (v *Validator) ValidateGRPCRequest(ctx context.Context, req interface{}) (*
 		panic(errors.New("failed to validate request but cannot convert validation errors"))
 	}
 
-	st := status.New(codes.InvalidArgument, "failed to validate request")
+	// use the first field error as the main error message.
+	st := status.New(codes.InvalidArgument, br.FieldViolations[0].Description)
 	dstSt, err := st.WithDetails(br)
 	if err != nil {
 		panic(err)
