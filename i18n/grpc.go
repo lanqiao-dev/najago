@@ -3,32 +3,26 @@ package i18n
 import (
 	"context"
 
-	"golang.org/x/text/language"
-	"golang.org/x/text/message"
+	goi18n "github.com/nicksnyder/go-i18n/v2/i18n"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
 
-var messagePrinterKey struct{}
+const (
+	grpcLangMetaKey = "lang"
+)
 
-// UnaryServerInterceptor set the message printer for every request.
-func UnaryServerInterceptor(matcher language.Matcher) grpc.UnaryServerInterceptor {
+// UnaryServerInterceptor set the localizer for every request.
+func UnaryServerInterceptor(bundle *goi18n.Bundle) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
-		var values []string
-		var lang string
+		var langs []string
 		md, ok := metadata.FromIncomingContext(ctx)
 		if ok {
-			values = md.Get("accept-language")
-			lang = values[0]
-		} else {
-			lang = "'"
+			langs = md.Get(grpcLangMetaKey)
+
 		}
-		t, _, _ := language.ParseAcceptLanguage(lang)
-		tag, _, _ := matcher.Match(t...)
-
-		p := message.NewPrinter(tag)
-		ctx = context.WithValue(ctx, messagePrinterKey, p)
-
+		localizer := goi18n.NewLocalizer(bundle, langs...)
+		ctx = context.WithValue(ctx, i18nLocalizerKey, localizer)
 		return handler(ctx, req)
 	}
 }
